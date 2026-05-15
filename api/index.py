@@ -41,11 +41,11 @@ async def generic_handler(request: Request, exc: Exception):
     )
 
 
-# Routers
-app.include_router(auth.router)
-app.include_router(teams.router)
-app.include_router(tasks.router)
-app.include_router(messages.router)
+# Routers — /api prefix matches frontend API_BASE and Vercel routing
+app.include_router(auth.router, prefix="/api")
+app.include_router(teams.router, prefix="/api")
+app.include_router(tasks.router, prefix="/api")
+app.include_router(messages.router, prefix="/api")
 
 # Vercel serverless handler
 handler = Mangum(app, lifespan="off")
