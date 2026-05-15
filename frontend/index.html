@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskFlow</title>
+</head>
+<body>
+  <script src="/common.js"></script>
+  <script>
+    const u = getUser();
+    if (getToken() && u) window.location.href = u.team_id ? '/kanban.html' : '/team.html';
+    else window.location.href = '/login.html';
+  </script>
+</body>
+</html>

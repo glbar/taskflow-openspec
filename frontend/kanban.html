@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - 칸반</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .card { cursor: grab; }
+    .card.dragging { opacity: 0.4; cursor: grabbing; }
+    .col.drag-over { outline: 2px dashed #14b8a6; background-color: rgba(20,184,166,0.05); }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100 flex flex-col">
+  <!-- Header -->
+  <header class="bg-white border-b px-4 py-3 flex items-center justify-between flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <span class="bg-teal-600 text-white font-bold px-3 py-1 rounded">TaskFlow</span>
+      <span id="team-name" class="font-medium text-gray-700 hidden md:block"></span>
+    </div>
+    <nav class="hidden md:flex gap-1">
+      <a href="/kanban.html" class="bg-teal-600 text-white px-4 py-1.5 rounded text-sm font-medium">칸반</a>
+      <a href="/chat.html" class="text-gray-600 hover:bg-gray-100 px-4 py-1.5 rounded text-sm">채팅</a>
+      <a href="/members.html" class="text-gray-600 hover:bg-gray-100 px-4 py-1.5 rounded text-sm">멤버</a>
+    </nav>
+    <div class="flex items-center gap-2">
+      <span id="user-email" class="hidden md:block text-sm text-gray-400"></span>
+      <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700 hidden md:block">로그아웃</button>
+      <button id="hamburger" class="md:hidden text-xl" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">☰</button>
+    </div>
+  </header>
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden bg-white border-b px-4 py-2 text-sm">
+    <a href="/kanban.html" class="block py-2 text-teal-600 font-medium">📋 칸반</a>
+    <a href="/chat.html" class="block py-2 text-gray-600">💬 채팅</a>
+    <a href="/members.html" class="block py-2 text-gray-600">👥 멤버</a>
+    <button onclick="logout()" class="block py-2 text-gray-600 w-full text-left">🚪 로그아웃</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white border-b px-4 py-2 flex items-center gap-2 flex-shrink-0">
+    <button id="f-all" onclick="setFilter('all')"
+      class="bg-gray-800 text-white px-3 py-1 rounded text-sm">전체</button>
+    <button id="f-me" onclick="setFilter('me')"
+      class="text-gray-600 bg-gray-100 px-3 py-1 rounded text-sm hover:bg-gray-200">@me</button>
+    <button id="f-un" onclick="setFilter('unassigned')"
+      class="text-gray-600 bg-gray-100 px-3 py-1 rounded text-sm hover:bg-gray-200">미할당</button>
+  </div>
+
+  <!-- Board -->
+  <div class="flex-1 overflow-auto p-4">
+    <div class="flex gap-4 h-full md:grid md:grid-cols-3">
+      <!-- Tab navigation (mobile) -->
+      <div id="col-tabs" class="md:hidden flex gap-2 w-full mb-3 col-span-3">
+        <button onclick="showMobileCol('TODO')" id="tab-TODO" class="flex-1 py-1.5 rounded text-sm font-medium bg-yellow-400 text-white">TODO</button>
+        <button onclick="showMobileCol('DOING')" id="tab-DOING" class="flex-1 py-1.5 rounded text-sm font-medium bg-gray-200 text-gray-600">DOING</button>
+        <button onclick="showMobileCol('DONE')" id="tab-DONE" class="flex-1 py-1.5 rounded text-sm font-medium bg-gray-200 text-gray-600">DONE</button>
+      </div>
+
+      <!-- TODO -->
+      <div id="col-TODO" class="col bg-yellow-50 rounded-lg p-3 min-w-56 flex flex-col"
+           ondragover="onDragOver(event,'TODO')" ondrop="onDrop(event,'TODO')" ondragleave="onDragLeave(event)">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-yellow-700 text-sm">TODO <span id="cnt-TODO">· 0</span></span>
+          <button onclick="showAdd('TODO')" class="text-teal-600 text-xl leading-none hover:text-teal-800">+</button>
+        </div>
+        <div id="add-TODO" class="hidden mb-2">
+          <input id="inp-TODO" type="text" maxlength="100" placeholder="태스크 제목..."
+            class="w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-teal-500"
+            onkeydown="addKey(event,'TODO')">
+          <p class="text-xs text-gray-400 mt-1">Enter: 저장 · Esc: 취소</p>
+        </div>
+        <div id="cards-TODO" class="space-y-2 flex-1"></div>
+        <div id="empty-TODO" class="hidden flex-1 flex flex-col items-center justify-center text-gray-400 py-8">
+          <p class="text-3xl mb-1">📋</p><p class="text-sm">카드 없음</p>
+          <p class="text-xs text-teal-500 mt-1 cursor-pointer" onclick="showAdd('TODO')">+ 첫 태스크 만들기</p>
+        </div>
+      </div>
+
+      <!-- DOING -->
+      <div id="col-DOING" class="col bg-blue-50 rounded-lg p-3 min-w-56 flex flex-col hidden md:flex"
+           ondragover="onDragOver(event,'DOING')" ondrop="onDrop(event,'DOING')" ondragleave="onDragLeave(event)">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-blue-700 text-sm">DOING <span id="cnt-DOING">· 0</span></span>
+          <button onclick="showAdd('DOING')" class="text-teal-600 text-xl leading-none hover:text-teal-800">+</button>
+        </div>
+        <div id="add-DOING" class="hidden mb-2">
+          <input id="inp-DOING" type="text" maxlength="100" placeholder="태스크 제목..."
+            class="w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-teal-500"
+            onkeydown="addKey(event,'DOING')">
+          <p class="text-xs text-gray-400 mt-1">Enter: 저장 · Esc: 취소</p>
+        </div>
+        <div id="cards-DOING" class="space-y-2 flex-1"></div>
+        <div id="empty-DOING" class="hidden flex-1 flex flex-col items-center justify-center text-gray-400 py-8">
+          <p class="text-3xl mb-1">📋</p><p class="text-sm">카드 없음</p>
+          <p class="text-xs text-gray-400 mt-1">드래그로 이동</p>
+        </div>
+      </div>
+
+      <!-- DONE -->
+      <div id="col-DONE" class="col bg-green-50 rounded-lg p-3 min-w-56 flex flex-col hidden md:flex"
+           ondragover="onDragOver(event,'DONE')" ondrop="onDrop(event,'DONE')" ondragleave="onDragLeave(event)">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-semibold text-green-700 text-sm">DONE <span id="cnt-DONE">· 0</span></span>
+          <button onclick="showAdd('DONE')" class="text-teal-600 text-xl leading-none hover:text-teal-800">+</button>
+        </div>
+        <div id="add-DONE" class="hidden mb-2">
+          <input id="inp-DONE" type="text" maxlength="100" placeholder="태스크 제목..."
+            class="w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-teal-500"
+            onkeydown="addKey(event,'DONE')">
+          <p class="text-xs text-gray-400 mt-1">Enter: 저장 · Esc: 취소</p>
+        </div>
+        <div id="cards-DONE" class="space-y-2 flex-1"></div>
+        <div id="empty-DONE" class="hidden flex-1 flex flex-col items-center justify-center text-gray-400 py-8">
+          <p class="text-3xl mb-1">📋</p><p class="text-sm">카드 없음</p>
+          <p class="text-xs text-gray-400 mt-1">드래그로 이동</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-6 w-full max-w-sm">
+      <div class="flex items-center justify-between mb-4">
+        <span id="modal-id" class="text-xs text-gray-400"></span>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+      </div>
+      <input id="modal-title" type="text" maxlength="100"
+        class="w-full text-base font-medium border-b border-gray-200 pb-2 mb-4 focus:outline-none focus:border-teal-500">
+      <div class="mb-4">
+        <p class="text-xs text-gray-500 mb-2">상태</p>
+        <div class="flex gap-2">
+          <button onclick="setMs('TODO')" id="ms-TODO" class="flex-1 py-1.5 rounded text-sm border border-gray-200 text-gray-600">TODO</button>
+          <button onclick="setMs('DOING')" id="ms-DOING" class="flex-1 py-1.5 rounded text-sm border border-gray-200 text-gray-600">DOING</button>
+          <button onclick="setMs('DONE')" id="ms-DONE" class="flex-1 py-1.5 rounded text-sm border border-gray-200 text-gray-600">DONE</button>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">담당자: <span id="modal-assignee"></span></p>
+      <div class="flex gap-2">
+        <button onclick="saveModal()" class="flex-1 bg-teal-600 text-white py-2 rounded text-sm font-medium hover:bg-teal-700">저장</button>
+        <button onclick="deleteTask()" id="del-btn" class="hidden flex-1 border border-red-300 text-red-500 py-2 rounded text-sm hover:bg-red-50">🗑 삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/common.js"></script>
+  <script>
+    requireTeam();
+    let tasks = [], filter = 'all', dragId = null, modalTask = null;
+    const me = getUser();
+    const teamId = me?.team_id;
+
+    async function init() {
+      try {
+        const team = await apiFetch(`/teams/${teamId}`);
+        document.getElementById('team-name').textContent = team.name + ' 팀';
+        document.getElementById('user-email').textContent = me.email;
+      } catch(e) {}
+      await load();
+    }
+
+    async function load() {
+      const url = filter === 'me' ? `/teams/${teamId}/tasks?filter=me`
+                : filter === 'unassigned' ? `/teams/${teamId}/tasks?filter=unassigned`
+                : `/teams/${teamId}/tasks`;
+      try { tasks = await apiFetch(url); render(); } catch(e) { showError(e); }
+    }
+
+    function render() {
+      ['TODO','DOING','DONE'].forEach(s => {
+        const list = tasks.filter(t => t.status === s);
+        document.getElementById(`cnt-${s}`).textContent = `· ${list.length}`;
+        const c = document.getElementById(`cards-${s}`);
+        c.innerHTML = '';
+        document.getElementById(`empty-${s}`).classList.toggle('hidden', list.length > 0);
+        list.forEach(t => {
+          const el = document.createElement('div');
+          el.className = 'card bg-white rounded p-2.5 shadow-sm hover:shadow-md transition';
+          el.draggable = true;
+          el.dataset.id = t.id;
+          const aEmail = t.assignee_email ? '@' + t.assignee_email.split('@')[0] : '<span class="text-yellow-500 font-medium">⚠미할당</span>';
+          el.innerHTML = `<p class="text-sm font-medium mb-1">${esc(t.title)}</p><p class="text-xs text-gray-400">#${t.id} · ${aEmail}</p>`;
+          el.addEventListener('dragstart', e => { dragId = t.id; e.dataTransfer.setData('text/plain', t.id); setTimeout(() => el.classList.add('dragging'), 0); });
+          el.addEventListener('dragend', () => { el.classList.remove('dragging'); dragId = null; });
+          // Long press (mobile)
+          let timer;
+          el.addEventListener('touchstart', () => { timer = setTimeout(() => openModal(t), 600); }, { passive: true });
+          el.addEventListener('touchend', () => clearTimeout(timer));
+          el.addEventListener('touchmove', () => clearTimeout(timer));
+          el.addEventListener('click', () => openModal(t));
+          c.appendChild(el);
+        });
+      });
+    }
+
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    function setFilter(f) {
+      filter = f;
+      [['all','f-all'],['me','f-me'],['unassigned','f-un']].forEach(([k,id]) => {
+        const btn = document.getElementById(id);
+        btn.className = f === k
+          ? 'bg-gray-800 text-white px-3 py-1 rounded text-sm'
+          : 'text-gray-600 bg-gray-100 px-3 py-1 rounded text-sm hover:bg-gray-200';
+      });
+      load();
+    }
+
+    function showAdd(s) {
+      ['TODO','DOING','DONE'].forEach(x => document.getElementById(`add-${x}`).classList.add('hidden'));
+      document.getElementById(`add-${s}`).classList.remove('hidden');
+      document.getElementById(`inp-${s}`).focus();
+    }
+
+    function addKey(e, s) {
+      if (e.key === 'Enter') addTask(s);
+      if (e.key === 'Escape') document.getElementById(`add-${s}`).classList.add('hidden');
+    }
+
+    async function addTask(s) {
+      const inp = document.getElementById(`inp-${s}`);
+      const title = inp.value.trim();
+      if (!title) return;
+      try {
+        const t = await apiFetch(`/teams/${teamId}/tasks`, { method: 'POST', body: JSON.stringify({ title, assignee_id: me.id }) });
+        inp.value = '';
+        document.getElementById(`add-${s}`).classList.add('hidden');
+        if (s !== 'TODO') await apiFetch(`/tasks/${t.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: s }) });
+        await load();
+      } catch(e) { showError(e); }
+    }
+
+    // Drag & Drop
+    function onDragOver(e, s) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+    async function onDrop(e, s) {
+      e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+      const id = parseInt(e.dataTransfer.getData('text/plain'));
+      const t = tasks.find(x => x.id === id);
+      if (t && t.status !== s) {
+        try { await apiFetch(`/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: s }) }); await load(); }
+        catch(e) { showError(e); }
+      }
+    }
+
+    // Mobile tab navigation
+    function showMobileCol(s) {
+      ['TODO','DOING','DONE'].forEach(x => {
+        const col = document.getElementById(`col-${x}`);
+        col.classList.toggle('hidden', x !== s);
+        col.classList.toggle('flex', x === s);
+        const tab = document.getElementById(`tab-${x}`);
+        tab.className = x === s
+          ? `flex-1 py-1.5 rounded text-sm font-medium ${x==='TODO'?'bg-yellow-400':x==='DOING'?'bg-blue-400':'bg-green-500'} text-white`
+          : 'flex-1 py-1.5 rounded text-sm font-medium bg-gray-200 text-gray-600';
+      });
+    }
+
+    // Modal
+    function openModal(t) {
+      modalTask = { ...t };
+      document.getElementById('modal-id').textContent = `#${t.id}`;
+      document.getElementById('modal-title').value = t.title;
+      document.getElementById('modal-assignee').textContent = t.assignee_email ? '@' + t.assignee_email.split('@')[0] : '미할당';
+      setMs(t.status);
+      document.getElementById('del-btn').classList.toggle('hidden', t.creator_id !== me.id);
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function setMs(s) {
+      if (modalTask) modalTask.status = s;
+      ['TODO','DOING','DONE'].forEach(x => {
+        document.getElementById(`ms-${x}`).className = x === s
+          ? 'flex-1 py-1.5 rounded text-sm border border-teal-500 bg-teal-50 text-teal-700 font-medium'
+          : 'flex-1 py-1.5 rounded text-sm border border-gray-200 text-gray-600';
+      });
+    }
+
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); modalTask = null; }
+
+    async function saveModal() {
+      if (!modalTask) return;
+      const orig = tasks.find(t => t.id === modalTask.id);
+      const newTitle = document.getElementById('modal-title').value.trim();
+      try {
+        if (newTitle !== orig.title) await apiFetch(`/tasks/${modalTask.id}`, { method: 'PUT', body: JSON.stringify({ title: newTitle }) });
+        if (modalTask.status !== orig.status) await apiFetch(`/tasks/${modalTask.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: modalTask.status }) });
+        closeModal(); await load();
+      } catch(e) { showError(e); }
+    }
+
+    async function deleteTask() {
+      if (!modalTask) return;
+      if (!confirm(`이 카드를 삭제하시겠습니까?\n#${modalTask.id} ${modalTask.title}\n되돌릴 수 없습니다`)) return;
+      try { await apiFetch(`/tasks/${modalTask.id}`, { method: 'DELETE' }); closeModal(); await load(); }
+      catch(e) { showError(e); }
+    }
+
+    init();
+  </script>
+</body>
+</html>

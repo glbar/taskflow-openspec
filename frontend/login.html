@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - 로그인</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+    <div class="text-center mb-6">
+      <span class="inline-block bg-teal-600 text-white text-xl font-bold px-4 py-2 rounded">TaskFlow</span>
+    </div>
+    <h2 class="text-xl font-semibold text-center mb-6">로그인</h2>
+    <div id="err" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded mb-4"></div>
+    <form id="form">
+      <input id="email" type="email" placeholder="이메일 입력" required
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-3 focus:outline-none focus:border-teal-500">
+      <input id="password" type="password" placeholder="비밀번호" required
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-5 focus:outline-none focus:border-teal-500">
+      <button type="submit" id="btn"
+        class="w-full bg-teal-600 text-white py-2 rounded font-medium hover:bg-teal-700 transition disabled:opacity-50">
+        로그인
+      </button>
+    </form>
+    <p class="text-center text-sm text-gray-500 mt-4">
+      계정이 없으신가요? <a href="/signup.html" class="text-teal-600 hover:underline">회원가입</a>
+    </p>
+  </div>
+  <script src="/common.js"></script>
+  <script>
+    const token = getToken();
+    if (token) { const u = getUser(); window.location.href = u?.team_id ? '/kanban.html' : '/team.html'; }
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('err');
+      const btn = document.getElementById('btn');
+      errEl.classList.add('hidden');
+      btn.textContent = '처리 중…'; btn.disabled = true;
+      try {
+        const data = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value })
+        });
+        setToken(data.token); setUser(data.user);
+        window.location.href = data.user.team_id ? '/kanban.html' : '/team.html';
+      } catch (err) {
+        errEl.textContent = err?.error?.message || '로그인에 실패했습니다';
+        errEl.classList.remove('hidden');
+        btn.textContent = '로그인'; btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

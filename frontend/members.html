@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow - 팀 멤버</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <header class="bg-white border-b px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="bg-teal-600 text-white font-bold px-3 py-1 rounded">TaskFlow</span>
+      <span id="team-name" class="font-medium text-gray-700 text-sm"></span>
+    </div>
+    <nav class="hidden md:flex gap-1">
+      <a href="/kanban.html" class="text-gray-600 hover:bg-gray-100 px-4 py-1.5 rounded text-sm">칸반</a>
+      <a href="/chat.html" class="text-gray-600 hover:bg-gray-100 px-4 py-1.5 rounded text-sm">채팅</a>
+      <a href="/members.html" class="bg-teal-600 text-white px-4 py-1.5 rounded text-sm font-medium">멤버</a>
+    </nav>
+    <button onclick="logout()" class="text-sm text-gray-500 hover:text-gray-700">로그아웃</button>
+  </header>
+
+  <div class="max-w-lg mx-auto mt-6 px-4">
+    <h2 class="font-semibold text-lg mb-4">팀 멤버 <span id="cnt" class="text-sm font-normal text-gray-400"></span></h2>
+    <div id="list" class="bg-white rounded-lg shadow-sm divide-y"></div>
+  </div>
+
+  <script src="/common.js"></script>
+  <script>
+    requireTeam();
+    const me = getUser(); const teamId = me?.team_id;
+    const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    async function init() {
+      try {
+        const [team, members] = await Promise.all([apiFetch(`/teams/${teamId}`), apiFetch(`/teams/${teamId}/members`)]);
+        document.getElementById('team-name').textContent = team.name + ' 팀';
+        document.getElementById('cnt').textContent = `(${members.length})`;
+        const list = document.getElementById('list');
+        list.innerHTML = members.map(m => {
+          const joined = m.team_joined_at ? new Date(m.team_joined_at).toLocaleDateString('ko-KR') : '-';
+          const isMe = m.id === me.id;
+          const avatar = m.is_owner ? 'bg-teal-600' : 'bg-gray-400';
+          return `<div class="flex items-center px-4 py-3 gap-3">
+            <div class="w-8 h-8 rounded-full ${avatar} flex items-center justify-center text-white text-sm font-bold flex-shrink-0">${m.email[0].toUpperCase()}</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">${esc(m.email)}${isMe ? ' <span class="text-gray-400 font-normal text-xs">(나)</span>' : ''}</p>
+              <p class="text-xs text-gray-400">${m.is_owner ? '<span class="text-yellow-500">★ owner</span>' : 'member'}</p>
+            </div>
+            <span class="text-xs text-gray-400 flex-shrink-0">${joined}</span>
+          </div>`;
+        }).join('');
+      } catch(e) { showError(e); }
+    }
+    init();
+  </script>
+</body>
+</html>
