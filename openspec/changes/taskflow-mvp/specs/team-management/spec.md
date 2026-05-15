@@ -61,7 +61,7 @@
 
 #### Scenario: 멤버 목록 조회
 - **WHEN** 팀 멤버가 GET /teams/{id}/members 호출
-- **THEN** HTTP 200, `[{ id, email, is_owner, joined_at }]` 반환, owner가 목록 상단
+- **THEN** HTTP 200, `[{ id, email, is_owner, team_joined_at }]` 반환, owner가 목록 상단
 
 ---
 

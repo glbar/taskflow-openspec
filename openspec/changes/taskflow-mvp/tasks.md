@@ -1,7 +1,7 @@
 ## 1. 프로젝트 초기 설정
 
-- [ ] 1.1 디렉토리 구조 생성: `api/`, `frontend/`, `openspec/` 폴더
-- [ ] 1.2 `requirements.txt` 작성 (fastapi, uvicorn, sqlalchemy, python-jose[cryptography], passlib[bcrypt], mangum, psycopg2-binary, python-dotenv)
+- [ ] 1.1 디렉토리 구조 생성: `api/`, `api/routers/`, `frontend/` 폴더
+- [ ] 1.2 `requirements.txt` 작성 (fastapi, uvicorn, sqlalchemy, python-jose[cryptography], passlib[bcrypt], mangum, psycopg2-binary==2.9.9, python-dotenv)
 - [ ] 1.3 `.env` 파일 생성 (DATABASE_URL, JWT_SECRET_KEY, CORS_ORIGINS)
 - [ ] 1.4 `.gitignore` 작성 (.env, *.db, __pycache__, .vercel)
 - [ ] 1.5 `vercel.json` 작성 (라우팅: /api/* → api/index.py, /* → frontend/)
@@ -9,12 +9,13 @@
 ## 2. DB 모델
 
 - [ ] 2.1 `api/database.py` — SQLAlchemy engine, Session, Base 설정 (DATABASE_URL 환경변수 읽기)
-- [ ] 2.2 `api/models.py` — User 모델 (id, email, password_hash, team_id FK, created_at)
-- [ ] 2.3 `api/models.py` — Team 모델 (id, name, invite_code UNIQUE, owner_id FK, created_at)
+- [ ] 2.2 `api/models.py` — User 모델 (id, email, password_hash, team_id FK nullable, team_joined_at nullable, created_at)
+- [ ] 2.3 `api/models.py` — Team 모델 (id, name, invite_code UNIQUE, owner_id FK, created_at) — owner_id는 순환 FK이므로 `ForeignKey("users.id", use_alter=True)` 사용
 - [ ] 2.4 `api/models.py` — Task 모델 (id, team_id FK, title, status, creator_id FK, assignee_id FK nullable, created_at)
 - [ ] 2.5 `api/models.py` — Message 모델 (id, team_id FK, user_id FK, content, created_at)
 - [ ] 2.6 인덱스 추가: tasks(team_id, created_at), messages(team_id, created_at), teams(invite_code)
 - [ ] 2.7 `api/index.py` — FastAPI 앱 생성, startup 이벤트에서 `create_all` 실행, mangum 핸들러 등록
+- [ ] 2.8 `api/routers/auth.py`, `api/routers/teams.py`, `api/routers/tasks.py`, `api/routers/messages.py` — 라우터 파일 생성 및 `api/index.py`에 include_router 등록
 
 ## 3. 공통 유틸리티
 
@@ -37,7 +38,7 @@
 - [ ] 5.1 `POST /teams` — 팀명 검증, invite_code 생성 (`[A-Z]{4}-[0-9]{4}`), teams INSERT, users.team_id UPDATE (201)
 - [ ] 5.2 `POST /teams/join` — invite_code 형식·존재 검증, 이미 소속 409 처리, users.team_id UPDATE (200)
 - [ ] 5.3 `GET /teams/{id}` — 팀 정보 반환 (멤버만 접근, 비멤버 403)
-- [ ] 5.4 `GET /teams/{id}/members` — 멤버 목록 반환 (is_owner 포함)
+- [ ] 5.4 `GET /teams/{id}/members` — 멤버 목록 반환 (is_owner, team_joined_at 포함)
 - [ ] 5.5 `DELETE /teams/{id}/leave` — users.team_id = null UPDATE (200)
 
 ## 6. 칸반 API
@@ -107,7 +108,7 @@
 
 ## 15. Vercel 배포
 
-- [ ] 15.1 GitHub 저장소 생성 및 초기 push
+- [x] 15.1 GitHub 저장소 생성 및 초기 push
 - [ ] 15.2 Vercel 프로젝트 연결 (`vercel link`)
 - [ ] 15.3 Neon DB 생성, DATABASE_URL·JWT_SECRET_KEY·CORS_ORIGINS 환경변수 설정
 - [ ] 15.4 첫 배포 (`vercel --prod`) 및 동작 확인 (회원가입 → 팀 생성 → 칸반 → 채팅)

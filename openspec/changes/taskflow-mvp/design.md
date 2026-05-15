@@ -73,7 +73,40 @@ requirements.txt
 
 **대안**: 메시지 ID 기반 — 검토했으나 스토리보드 명세(E.01)가 타임스탬프 기준으로 정의되어 있어 그대로 따른다.
 
-### 7. DB 마이그레이션: SQLAlchemy `create_all` (앱 시작 시)
+### 7. users ↔ teams 순환 FK: `use_alter=True`
+
+`users.team_id → teams`와 `teams.owner_id → users`가 서로를 참조하는 순환 관계다. SQLAlchemy `create_all` 시 테이블 생성 순서 오류가 발생한다.
+
+```python
+# teams.owner_id에 use_alter=True 적용
+owner_id = Column(Integer, ForeignKey("users.id", use_alter=True, name="fk_teams_owner_id"))
+```
+
+`use_alter=True`는 FK 제약을 테이블 생성 후 `ALTER TABLE`로 추가하므로 순환 참조를 해소한다.
+
+### 8. 백엔드 파일 구조: 라우터 분리
+
+단일 `api/index.py`에 모든 라우터를 넣으면 700줄 이상이 된다. `api/routers/` 폴더로 분리한다.
+
+```
+api/
+  index.py          ← 앱 생성, 라우터 등록, CORS, 에러 핸들러, mangum
+  database.py       ← engine, Session, Base
+  models.py         ← 4개 테이블 모델
+  schemas.py        ← Pydantic 스키마
+  auth.py           ← JWT 유틸, get_current_user 의존성
+  routers/
+    auth.py         ← POST /auth/*
+    teams.py        ← POST/GET /teams/*, DELETE /teams/{id}/leave
+    tasks.py        ← GET/POST/PUT/PATCH/DELETE /tasks/* + /teams/{id}/tasks
+    messages.py     ← GET/POST /teams/{id}/messages, DELETE /messages/{id}
+```
+
+### 9. users.team_joined_at 추가
+
+멤버 목록 API(`GET /teams/{id}/members`)에서 합류 시간을 반환하기 위해 `users` 테이블에 `team_joined_at` 컬럼을 추가한다. `POST /teams/join` 및 `POST /teams` 처리 시 현재 시각으로 SET한다. `DELETE /teams/{id}/leave` 시 null로 초기화한다.
+
+### 10. DB 마이그레이션: SQLAlchemy `create_all` (앱 시작 시)
 
 ```python
 Base.metadata.create_all(bind=engine)
