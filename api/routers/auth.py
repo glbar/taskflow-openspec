@@ -1,14 +1,21 @@
 import re
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..auth import create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def _user_out(user: models.User, token: str = None):
@@ -27,7 +34,7 @@ def signup(data: schemas.UserCreate, db: Session = Depends(get_db)):
     if db.query(models.User).filter(models.User.email == data.email).first():
         raise HTTPException(409, detail={"code": "EMAIL_TAKEN", "message": "이미 가입된 이메일입니다"})
 
-    user = models.User(email=data.email, password_hash=pwd_context.hash(data.password))
+    user = models.User(email=data.email, password_hash=hash_password(data.password))
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -37,7 +44,7 @@ def signup(data: schemas.UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(data: schemas.UserLogin, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == data.email).first()
-    if not user or not pwd_context.verify(data.password, user.password_hash):
+    if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(401, detail={"code": "INVALID_CREDENTIALS", "message": "이메일 또는 비밀번호가 일치하지 않습니다"})
     return _user_out(user, create_access_token(user.id))
 

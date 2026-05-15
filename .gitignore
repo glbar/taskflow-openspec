@@ -13,3 +13,4 @@ node_modules/
 test_api.py
 *.png
 .playwright-mcp/
+.vercel
