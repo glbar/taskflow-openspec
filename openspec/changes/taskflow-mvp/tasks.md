@@ -109,6 +109,6 @@
 ## 15. Vercel 배포
 
 - [x] 15.1 GitHub 저장소 생성 및 초기 push
-- [ ] 15.2 Vercel 프로젝트 연결 (`vercel link`)
-- [ ] 15.3 Neon DB 생성, DATABASE_URL·JWT_SECRET_KEY·CORS_ORIGINS 환경변수 설정
-- [ ] 15.4 첫 배포 (`vercel --prod`) 및 동작 확인 (회원가입 → 팀 생성 → 칸반 → 채팅)
+- [x] 15.2 Vercel 프로젝트 연결 (`vercel link`)
+- [x] 15.3 Neon DB 생성, DATABASE_URL·JWT_SECRET_KEY·CORS_ORIGINS 환경변수 설정
+- [x] 15.4 첫 배포 (`vercel --prod`) 및 동작 확인 (회원가입 → 팀 생성 → 칸반 → 채팅)
