@@ -1,4 +1,5 @@
-const API_BASE = '/api';
+// 로컬(포트 5500)에서는 FastAPI 서버(8000)로, 운영(Vercel)에서는 같은 origin /api로
+const API_BASE = window.location.port === '5500' ? 'http://localhost:8000/api' : '/api';
 
 function getToken() { return localStorage.getItem('token'); }
 function setToken(t) { localStorage.setItem('token', t); }
